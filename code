@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ポケカ資産">
+<meta name="theme-color" content="#09090f">
+<title>ポケカ資産管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Sans+JP:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --gold: #FFD700; --gold-dim: rgba(255,215,0,0.12);
+  --bg: #09090f; --surface: rgba(255,255,255,0.05);
+  --border: rgba(255,215,0,0.12); --text: #e4e4e4; --muted: #666;
+  --green: #4ade80; --red: #f87171; --blue: #60a5fa;
+  --safe-top: env(safe-area-inset-top, 44px);
+  --safe-bottom: env(safe-area-inset-bottom, 20px);
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; user-select: none; -webkit-user-select: none; }
+#app { display: flex; flex-direction: column; height: 100%; max-width: 430px; margin: 0 auto; }
+::-webkit-scrollbar { display: none; }
+button { cursor: pointer; font-family: inherit; border: none; background: none; }
+input, select { font-family: inherit; outline: none; }
+a { text-decoration: none; }
+
+/* HEADER */
+.header { background: linear-gradient(160deg,#0f0f22,var(–bg)); border-bottom: 1px solid var(–border); padding: calc(var(–safe-top)+12px) 20px 0; flex-shrink:0; }
+.header-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.header-label { font-size:10px; letter-spacing:.2em; color:var(–gold); margin-bottom:5px; text-transform:uppercase; }
+.header-title { font-family:‘Playfair Display’,serif; font-size:26px; font-weight:900; line-height:1.1; background:linear-gradient(135deg,#fff 50%,var(–gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.header-total-label { font-size:10px; color:var(–muted); margin-bottom:3px; text-align:right; }
+.header-total-usd { font-family:‘Playfair Display’,serif; font-size:24px; font-weight:700; color:var(–gold); text-align:right; }
+.header-total-jpy { font-size:11px; color:#555; text-align:right; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px; }
+.stat-box { background:var(–surface); border:1px solid var(–border); border-radius:12px; padding:10px; }
+.stat-box-label { font-size:9px; color:#555; margin-bottom:4px; letter-spacing:.08em; text-transform:uppercase; }
+.stat-box-val { font-size:13px; font-weight:700; font-family:‘Playfair Display’,serif; line-height:1.2; }
+.stat-box-sub { font-size:9px; color:#444; margin-top:2px; }
+.tabs { display:flex; }
+.tab { flex:1; padding:12px 0; font-size:12px; font-weight:600; background:none; border:none; border-bottom:2px solid transparent; color:var(–muted); transition:all .2s; }
+.tab.active { border-bottom-color:var(–gold); color:var(–gold); }
+
+/* CONTENT */
+.content { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 16px calc(90px + var(–safe-bottom)); }
+
+/* CARD LIST */
+.sort-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.sort-count { font-size:12px; color:#444; }
+.sort-select { background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:5px 24px 5px 10px; font-size:12px; color:var(–text); -webkit-appearance:none; background-image:url(“data:image/svg+xml,%3Csvg xmlns=‘http://www.w3.org/2000/svg’ width=‘10’ height=‘6’%3E%3Cpath d=‘M0 0l5 6 5-6z’ fill=’%23666’/%3E%3C/svg%3E”); background-repeat:no-repeat; background-position:right 8px center; }
+.card-item { background:var(–surface); border:1px solid var(–border); border-radius:16px; padding:14px; margin-bottom:10px; -webkit-tap-highlight-color:transparent; transition:border-color .15s; }
+.card-item:active { border-color:rgba(255,215,0,.35); }
+.card-top { display:flex; justify-content:space-between; align-items:flex-start; }
+.card-left { flex:1; margin-right:10px; }
+.card-badges { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+.badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; }
+.badge-qty { color:var(–gold); background:rgba(255,215,0,.1); border:1px solid rgba(255,215,0,.2); }
+.card-name { font-size:14px; font-weight:700; line-height:1.3; margin-bottom:2px; }
+.card-set { font-size:11px; color:#555; }
+.card-notes { font-size:11px; color:#666; margin-top:4px; font-style:italic; }
+.card-right { text-align:right; flex-shrink:0; }
+.card-val-usd { font-family:‘Playfair Display’,serif; font-size:17px; font-weight:700; color:var(–gold); }
+.card-val-jpy { font-size:10px; color:#555; margin-bottom:3px; }
+.card-pnl { font-size:12px; font-weight:600; }
+.card-share { font-size:10px; color:#3a3a3a; margin-top:3px; }
+.card-spark { margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.06); }
+.card-spark-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.card-spark-label { font-size:10px; color:#555; }
+.card-spark-change { font-size:11px; font-weight:600; }
+.card-footer { display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.06); }
+.card-unit { font-size:11px; color:#444; }
+.ebay-link { font-size:11px; color:var(–gold); background:rgba(255,215,0,.08); border:1px solid rgba(255,215,0,.2); padding:4px 10px; border-radius:8px; }
+.empty-state { text-align:center; padding:80px 20px; }
+.empty-emoji { font-size:56px; margin-bottom:16px; }
+.empty-title { font-size:15px; font-weight:600; color:#555; margin-bottom:8px; }
+.empty-sub { font-size:13px; color:#3a3a3a; }
+
+/* ANALYSIS */
+.analysis-card { background:var(–surface); border:1px solid var(–border); border-radius:16px; padding:16px; margin-bottom:14px; }
+.analysis-title { font-size:11px; color:#666; margin-bottom:14px; letter-spacing:.1em; text-transform:uppercase; }
+.bar-row { margin-bottom:13px; }
+.bar-label-row { display:flex; justify-content:space-between; margin-bottom:4px; }
+.bar-name { font-size:12px; flex:1; margin-right:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bar-pct { font-size:12px; font-weight:700; flex-shrink:0; }
+.bar-track { height:6px; border-radius:3px; background:rgba(255,255,255,.06); overflow:hidden; }
+.bar-fill { height:100%; border-radius:3px; }
+.bar-sub { font-size:10px; color:#444; margin-top:3px; }
+.rank-row { display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+.rank-row:last-child { border-bottom:none; }
+.rank-left { flex:1; margin-right:10px; }
+.rank-name { font-size:13px; font-weight:600; margin-bottom:5px; }
+.rank-right { text-align:right; }
+.rank-pnl { font-size:14px; font-weight:700; }
+.rank-pct { font-size:11px; color:#555; }
+
+/* HISTORY TAB */
+.ph-card { background:var(–surface); border:1px solid var(–border); border-radius:16px; padding:16px; margin-bottom:14px; }
+.ph-title { font-size:11px; color:#666; margin-bottom:6px; letter-spacing:.1em; text-transform:uppercase; }
+.ph-big { font-family:‘Playfair Display’,serif; font-size:26px; font-weight:700; color:var(–gold); line-height:1; }
+.ph-date { font-size:12px; color:#555; margin-top:4px; margin-bottom:4px; }
+.ph-change { font-size:13px; font-weight:600; margin-bottom:14px; min-height:20px; }
+.ph-canvas-wrap { width:100%; height:110px; margin-bottom:14px; position:relative; }
+.ph-canvas-wrap canvas { display:block; }
+.ph-slider-wrap { padding:0 2px; margin-bottom:6px; }
+.ph-slider { width:100%; -webkit-appearance:none; appearance:none; height:4px; border-radius:2px; background:rgba(255,255,255,.1); outline:none; }
+.ph-slider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(–gold); box-shadow:0 0 10px rgba(255,215,0,.4); cursor:pointer; }
+.ph-ticks { display:flex; justify-content:space-between; }
+.ph-tick { font-size:9px; color:#444; }
+.ph-no-data { text-align:center; padding:28px 16px; color:#444; font-size:13px; line-height:1.8; }
+.section-label { font-size:11px; color:#555; text-transform:uppercase; letter-spacing:.1em; margin:16px 0 10px; }
+
+/* HISTORY MODAL */
+.hm-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+.hm-row:last-child { border-bottom:none; }
+.hm-date { font-size:12px; color:#888; margin-bottom:2px; }
+.hm-price { font-size:14px; font-weight:700; color:var(–gold); }
+.hm-change { font-size:11px; }
+.hm-del { font-size:18px; color:#3a3a3a; padding:4px 8px; }
+
+/* FAB */
+.fab { position:fixed; bottom:calc(28px + var(–safe-bottom)); right:calc(50% - 215px + 18px); width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#FFD700,#FF8C00); border:none; font-size:30px; font-weight:900; color:#000; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 24px rgba(255,215,0,.35); z-index:100; -webkit-tap-highlight-color:transparent; transition:transform .1s; }
+.fab:active { transform:scale(.93); }
+
+/* MODALS */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:200; display:flex; flex-direction:column; justify-content:flex-end; }
+.modal-sheet { background:#12121f; border-radius:24px 24px 0 0; padding:24px 20px calc(24px + var(–safe-bottom)); max-height:92vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.modal-title { font-family:‘Playfair Display’,serif; font-size:18px; font-weight:700; flex:1; margin-right:10px; }
+.modal-close { background:rgba(255,255,255,.08); border:none; color:#888; width:32px; height:32px; border-radius:50%; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.field { margin-bottom:14px; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+.field-label { font-size:10px; color:#777; margin-bottom:5px; letter-spacing:.08em; text-transform:uppercase; }
+.field input, .field select { width:100%; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:11px 12px; font-size:14px; color:var(–text); -webkit-appearance:none; appearance:none; }
+.field input:focus, .field select:focus { border-color:rgba(255,215,0,.5); }
+.ebay-hint { display:block; margin-bottom:16px; padding:11px 14px; background:rgba(255,215,0,.06); border:1px solid rgba(255,215,0,.2); border-radius:10px; font-size:13px; color:var(–gold); }
+.modal-actions { display:grid; gap:10px; }
+.btn-primary { padding:14px; border-radius:14px; background:linear-gradient(135deg,#FFD700,#FFA500); border:none; color:#000; font-size:15px; font-weight:700; font-family:inherit; }
+.btn-secondary { padding:12px; border-radius:14px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#aaa; font-size:14px; font-weight:600; font-family:inherit; }
+.btn-danger { padding:14px; border-radius:14px; background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.3); color:var(–red); font-size:14px; font-weight:600; font-family:inherit; }
+.btn-primary:active,.btn-secondary:active,.btn-danger:active { opacity:.8; }
+.modal-divider { font-size:10px; color:#555; text-transform:uppercase; letter-spacing:.1em; margin:18px 0 12px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,.06); }
+
+/* INSTALL */
+.install-banner { background:rgba(255,215,0,.08); border:1px solid rgba(255,215,0,.2); border-radius:12px; padding:12px 14px; margin:12px 16px 0; display:flex; align-items:center; gap:10px; }
+.install-banner-text { font-size:12px; color:#bbb; flex:1; line-height:1.5; }
+.install-close { background:none; border:none; color:#555; font-size:18px; flex-shrink:0; }
+.green { color:var(–green); } .red { color:var(–red); } .gold { color:var(–gold); }
+</style>
+
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-label">PSA Grade Portfolio</div>
+        <div class="header-title">ポケカ<br>資産管理</div>
+      </div>
+      <div>
+        <div class="header-total-label">総資産</div>
+        <div class="header-total-usd" id="totalUSD">$0</div>
+        <div class="header-total-jpy" id="totalJPY">¥0</div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-box-label">取得コスト</div><div class="stat-box-val" id="statCost">$0</div><div class="stat-box-sub" id="statCostJPY">¥0</div></div>
+      <div class="stat-box"><div class="stat-box-label">損益</div><div class="stat-box-val" id="statPnL">$0</div><div class="stat-box-sub" id="statPnLPct">0%</div></div>
+      <div class="stat-box"><div class="stat-box-label">保有</div><div class="stat-box-val" id="statQty">0枚</div><div class="stat-box-sub" id="statKinds">0種類</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('list')" id="tabList">📋 カード</button>
+      <button class="tab" onclick="switchTab('history')" id="tabHistory">📈 履歴</button>
+      <button class="tab" onclick="switchTab('chart')" id="tabChart">📊 分析</button>
+    </div>
+  </div>
+
+  <div id="installBanner" class="install-banner" style="display:none">
+    <div class="install-banner-text">📱 Safari→共有→「ホーム画面に追加」でアプリとして使えます</div>
+    <button class="install-close" onclick="dismissInstall()">✕</button>
+  </div>
+
+  <div class="content" id="content"></div>
+  <button class="fab" onclick="openAdd()">+</button>
+</div>
+
+<!-- CARD MODAL -->
+
+<div class="modal-overlay" id="modal" style="display:none" onclick="handleOverlay(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">カードを追加</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="field"><div class="field-label">カード名 *</div><input id="fName" type="text" placeholder="例: リザードン Base Set Holo"></div>
+    <div class="field-row">
+      <div class="field"><div class="field-label">セット名</div><input id="fSet" type="text" placeholder="例: Base Set"></div>
+      <div class="field"><div class="field-label">カード番号</div><input id="fNumber" type="text" placeholder="4/102"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><div class="field-label">PSAグレード</div>
+        <select id="fGrade"><option value="10">PSA 10</option><option value="9">PSA 9</option><option value="8">PSA 8</option><option value="7">PSA 7</option><option value="6">PSA 6</option><option value="0">未グレード</option></select>
+      </div>
+      <div class="field"><div class="field-label">枚数</div><input id="fQty" type="number" min="1" value="1"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><div class="field-label">取得価格 (USD)</div><input id="fBuy" type="number" min="0" step="0.01" placeholder="0"></div>
+      <div class="field"><div class="field-label">現在時価 (USD) *</div><input id="fMarket" type="number" min="0" step="0.01" placeholder="0"></div>
+    </div>
+    <div class="field"><div class="field-label">メモ</div><input id="fNotes" type="text" placeholder="例: 1st Edition, Shadowless..."></div>
+    <a id="ebayHint" class="ebay-hint" href="#" target="_blank" style="display:none">🔍 eBayで確認 →</a>
+    <div class="modal-actions" id="modalActions"><button class="btn-primary" onclick="saveCard()">追加する</button></div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+
+<div class="modal-overlay" id="histModal" style="display:none" onclick="handleHistOverlay(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title" id="histModalTitle">価格履歴</div>
+      <button class="modal-close" onclick="closeHistModal()">✕</button>
+    </div>
+    <div class="modal-divider">価格を記録する</div>
+    <div class="field-row">
+      <div class="field"><div class="field-label">価格 (USD) *</div><input id="hPrice" type="number" min="0" step="0.01" placeholder="0"></div>
+      <div class="field"><div class="field-label">日付</div><input id="hDate" type="date"></div>
+    </div>
+    <button class="btn-primary" style="width:100%;margin-bottom:4px" onclick="addHistoryEntry()">記録する</button>
+    <div class="modal-divider" style="margin-top:20px">記録一覧</div>
+    <div id="histList"></div>
+  </div>
+</div>
+
+<script>
+const SK = 'pokeca-v4';
+const RATE = 150;
+const COLORS = ['#FFD700','#FFA500','#4ade80','#60a5fa','#f87171','#a78bfa','#34d399','#fb923c'];
+let cards = [], currentTab = 'list', editId = null, histCardId = null;
+
+/* ── STORAGE ── */
+function load() {
+  try { cards = JSON.parse(localStorage.getItem(SK)) || demo(); } catch { cards = demo(); }
+}
+function save() { try { localStorage.setItem(SK, JSON.stringify(cards)); } catch {} }
+
+function demo() {
+  const d = Date.now(), D = 86400000;
+  return [
+    { id:1, name:'リザードン Base Set Holo', set:'Base Set', number:'4/102', grade:10, qty:1, buy:5000, market:12000, notes:'1st Edition',
+      history:[{date:fd(d-D*120),price:7200},{date:fd(d-D*90),price:8500},{date:fd(d-D*60),price:9800},{date:fd(d-D*30),price:10500},{date:fd(d-D*14),price:11200},{date:fd(d-D*7),price:11600},{date:fd(d),price:12000}]},
+    { id:2, name:'ルギア Neo Genesis Holo', set:'Neo Genesis', number:'9/111', grade:10, qty:2, buy:2000, market:4500, notes:'',
+      history:[{date:fd(d-D*90),price:3000},{date:fd(d-D*60),price:3500},{date:fd(d-D*30),price:3900},{date:fd(d-D*7),price:4200},{date:fd(d),price:4500}]},
+    { id:3, name:'ピカチュウ VMAX Rainbow', set:'Vivid Voltage', number:'188/185', grade:10, qty:1, buy:300, market:280, notes:'Rainbow Rare',
+      history:[{date:fd(d-D*60),price:360},{date:fd(d-D*45),price:330},{date:fd(d-D*30),price:310},{date:fd(d-D*14),price:295},{date:fd(d),price:280}]},
+    { id:4, name:'ミュウツー Base Set Holo', set:'Base Set', number:'10/102', grade:9, qty:1, buy:800, market:1200, notes:'',
+      history:[{date:fd(d-D*30),price:950},{date:fd(d-D*14),price:1050},{date:fd(d),price:1200}]},
+  ];
+}
+
+/* ── UTILS ── */
+function usd(v) { return '$'+Number(v||0).toLocaleString('en',{maximumFractionDigits:0}); }
+function jpy(v) { return '¥'+Math.round((v||0)*RATE).toLocaleString('ja'); }
+function fd(ts)  { return new Date(ts).toISOString().slice(0,10); }
+function today() { return fd(Date.now()); }
+function disp(d) { if(!d) return ''; const dt=new Date(d+'T00:00:00'); return `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`; }
+function ebayUrl(n) { return 'https://www.ebay.com/sch/i.html?_nkw='+encodeURIComponent('PSA 10 '+n+' pokemon card')+'&_sop=16'; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function gradeBadge(g) {
+  const m={10:['#FFD700','rgba(255,215,0,.15)'],9:['#60a5fa','rgba(96,165,250,.15)'],8:['#4ade80','rgba(74,222,128,.15)'],7:['#a0a0a0','rgba(160,160,160,.12)']};
+  const [c,bg]=m[g]||['#aaa','rgba(160,160,160,.1)'];
+  return `<span class="badge" style="color:${c};background:${bg};border:1px solid ${c}40">${g?'PSA '+g:'未グレード'}</span>`;
+}
+
+/* ── SPARKLINE ── */
+function spark(prices, col, W, H) {
+  if(!prices||prices.length<2) return '';
+  const mn=Math.min(...prices), mx=Math.max(...prices), rng=mx-mn||1, p=5;
+  const pts=prices.map((v,i)=>`${p+(i/(prices.length-1))*(W-p*2)},${H-p-((v-mn)/rng)*(H-p*2)}`).join(' ');
+  const lastX=p+(W-p*2), lastY=H-p-((prices[prices.length-1]-mn)/rng)*(H-p*2);
+  const area=`M${p},${H-p} `+prices.map((v,i)=>`L${p+(i/(prices.length-1))*(W-p*2)},${H-p-((v-mn)/rng)*(H-p*2)}`).join(' ')+` L${lastX},${H-p} Z`;
+  const gid='g'+Math.random().toString(36).slice(2,8);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${col}" stop-opacity=".3"/><stop offset="100%" stop-color="${col}" stop-opacity=".02"/></linearGradient></defs>
+    <path d="${area}" fill="url(#${gid})"/>
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lastX}" cy="${lastY}" r="3.5" fill="${col}"/>
+  </svg>`;
+}
+
+/* ── STATS ── */
+function calcStats() {
+  const tM=cards.reduce((s,c)=>s+(c.market||0)*(c.qty||1),0);
+  const tB=cards.reduce((s,c)=>s+(c.buy||0)*(c.qty||1),0);
+  const pnl=tM-tB, pp=tB>0?(pnl/tB*100):0, qty=cards.reduce((s,c)=>s+(c.qty||1),0);
+  document.getElementById('totalUSD').textContent=usd(tM);
+  document.getElementById('totalJPY').textContent=jpy(tM);
+  document.getElementById('statCost').textContent=usd(tB);
+  document.getElementById('statCostJPY').textContent=jpy(tB);
+  const pe=document.getElementById('statPnL');
+  pe.textContent=(pnl>=0?'▲ ':'▼ ')+usd(Math.abs(pnl));
+  pe.className='stat-box-val '+(pnl>=0?'green':'red');
+  const pc=document.getElementById('statPnLPct');
+  pc.textContent=(pp>=0?'+':'')+pp.toFixed(1)+'%';
+  pc.className='stat-box-sub '+(pnl>=0?'green':'red');
+  document.getElementById('statQty').textContent=qty+'枚';
+  document.getElementById('statKinds').textContent=cards.length+'種類';
+  return tM;
+}
+
+/* ── RENDER ── */
+function render() {
+  calcStats();
+  if(currentTab==='list') renderList();
+  else if(currentTab==='history') renderHistory();
+  else renderChart();
+}
+
+function renderList() {
+  const sel=document.getElementById('sortSel'), sb=sel?sel.value:'value';
+  const tM=cards.reduce((s,c)=>s+(c.market||0)*(c.qty||1),0);
+  const sorted=[...cards].sort((a,b)=>sb==='value'?(b.market*b.qty)-(a.market*a.qty):sb==='pnl'?((b.market-b.buy)*b.qty)-((a.market-a.buy)*a.qty):a.name.localeCompare(b.name,'ja'));
+  let html=`<div class="sort-row"><div class="sort-count">${cards.length}件登録</div>
+    <select class="sort-select" id="sortSel" onchange="render()">
+      <option value="value">時価順</option><option value="pnl">損益順</option><option value="name">名前順</option>
+    </select></div>`;
+  if(!cards.length) {
+    html+=`<div class="empty-state"><div class="empty-emoji">🃏</div><div class="empty-title">カードがありません</div><div class="empty-sub">＋ボタンから追加しましょう</div></div>`;
+  } else {
+    sorted.forEach(c=>{
+      const val=(c.market||0)*(c.qty||1), pnlA=((c.market||0)-(c.buy||0))*(c.qty||1);
+      const pnlP=c.buy>0?((c.market-c.buy)/c.buy*100).toFixed(1):null;
+      const share=tM>0?(val/tM*100).toFixed(1):0;
+      const hist=(c.history||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+      const prices=hist.map(h=>h.price);
+      const up=prices.length>=2?prices[prices.length-1]>=prices[0]:true;
+      const sparkCol=up?'#4ade80':'#f87171';
+      const sp=prices.length>=2?spark(prices,sparkCol,290,38):'';
+      const chg=prices.length>=2?((prices[prices.length-1]-prices[0])/prices[0]*100).toFixed(1):null;
+      html+=`<div class="card-item" onclick="openEdit(${c.id})">
+        <div class="card-top">
+          <div class="card-left">
+            <div class="card-badges">${gradeBadge(c.grade)}${c.qty>1?`<span class="badge badge-qty">×${c.qty}</span>`:''}</div>
+            <div class="card-name">${esc(c.name)}</div>
+            <div class="card-set">${esc(c.set||'')}${c.number?' #'+esc(c.number):''}</div>
+            ${c.notes?`<div class="card-notes">${esc(c.notes)}</div>`:''}
+          </div>
+          <div class="card-right">
+            <div class="card-val-usd">${usd(val)}</div>
+            <div class="card-val-jpy">${jpy(val)}</div>
+            ${pnlP!==null?`<div class="card-pnl ${pnlA>=0?'green':'red'}">${pnlA>=0?'▲':'▼'}${usd(Math.abs(pnlA))} <span style="font-size:10px">(${pnlA>=0?'+':''}${pnlP}%)</span></div>`:''}
+            <div class="card-share">${share}% of ptf</div>
+          </div>
+        </div>
+        ${sp?`<div class="card-spark">
+          <div class="card-spark-header">
+            <div class="card-spark-label">📈 価格推移 (${hist.length}件)</div>
+            ${chg!==null?`<div class="card-spark-change ${parseFloat(chg)>=0?'green':'red'}">${parseFloat(chg)>=0?'▲':'▼'}${Math.abs(chg)}% 全期間</div>`:''}
+          </div>
+          <div>${sp}</div>
+        </div>`:''}
+        <div class="card-footer">
+          <div class="card-unit">@1枚 ${usd(c.market)}</div>
+          <div style="display:flex;gap:6px">
+            <button class="ebay-link" onclick="event.stopPropagation();openHistModal(${c.id})">📊 履歴</button>
+            <a class="ebay-link" href="${ebayUrl(c.name)}" target="_blank" onclick="event.stopPropagation()">eBay →</a>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+  document.getElementById('content').innerHTML=html;
+}
+
+/* ── HISTORY TAB ── */
+// Aggregate all card histories into a portfolio total timeline
+function buildTimeline() {
+  const dateMap={};
+  cards.forEach(c=>{
+    (c.history||[]).forEach(h=>{
+      if(!dateMap[h.date]) dateMap[h.date]={};
+      dateMap[h.date][c.id]=h.price*(c.qty||1);
+    });
+  });
+  // For each date, fill in missing cards with their closest earlier price
+  const allDates=Object.keys(dateMap).sort();
+  if(!allDates.length) return [];
+  // Forward-fill per card
+  const filled={};
+  allDates.forEach(date=>{
+    cards.forEach(c=>{
+      if(dateMap[date][c.id]!==undefined) {
+        filled[c.id]=dateMap[date][c.id];
+      }
+      if(filled[c.id]!==undefined) {
+        dateMap[date][c.id]=filled[c.id];
+      }
+    });
+  });
+  return allDates.map(date=>({
+    date, total:Object.values(dateMap[date]).reduce((s,v)=>s+v,0)
+  }));
+}
+
+let _phData=[], _phCanvas=null, _phCtx=null;
+
+function renderHistory() {
+  const ph=buildTimeline();
+  let topSection='';
+  if(ph.length>=2) {
+    const last=ph[ph.length-1];
+    topSection=`<div class="ph-card">
+      <div class="ph-title">ポートフォリオ総額の推移</div>
+      <div id="phBig" class="ph-big">${usd(last.total)}</div>
+      <div id="phDate" class="ph-date">${disp(last.date)}</div>
+      <div id="phChange" class="ph-change"></div>
+      <div class="ph-canvas-wrap" id="phWrap"><canvas id="phCanvas"></canvas></div>
+      <div class="ph-slider-wrap">
+        <input class="ph-slider" type="range" id="phSlider" min="0" max="${ph.length-1}" value="${ph.length-1}" oninput="onSlider(this.value)">
+      </div>
+      <div class="ph-ticks"><div class="ph-tick">${disp(ph[0].date)}</div><div class="ph-tick">${disp(last.date)}</div></div>
+    </div>`;
+  } else {
+    topSection=`<div class="ph-card"><div class="ph-no-data">📈 価格を2件以上記録するとグラフが表示されます<br><br>カードの「📊 履歴」ボタンから記録してください</div></div>`;
+  }
+
+  // Per-card sparklines
+  let cardSections='';
+  cards.filter(c=>(c.history||[]).length>=2).forEach((c,ci)=>{
+    const hist=[...(c.history||[])].sort((a,b)=>a.date.localeCompare(b.date));
+    const prices=hist.map(h=>h.price);
+    const up=prices[prices.length-1]>=prices[0];
+    const col=up?'#4ade80':'#f87171';
+    const sp=spark(prices,col,300,60);
+    const chg=((prices[prices.length-1]-prices[0])/prices[0]*100).toFixed(1);
+    cardSections+=`<div class="analysis-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="flex:1;margin-right:10px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:4px;line-height:1.3">${esc(c.name)}</div>
+          <div style="display:flex;gap:6px;align-items:center">${gradeBadge(c.grade)}<span style="font-size:10px;color:#555">${hist.length}件の記録</span></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--gold)">${usd(prices[prices.length-1])}</div>
+          <div class="${up?'green':'red'}" style="font-size:12px;font-weight:600">${up?'▲':'▼'}${Math.abs(chg)}%</div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">${sp}</div>
+      <div style="display:flex;justify-content:space-between">
+        <div style="font-size:10px;color:#444">${disp(hist[0].date)}<br><span style="color:#888">${usd(prices[0])}</span></div>
+        <div style="font-size:10px;color:#444;text-align:right">${disp(hist[hist.length-1].date)}<br><span style="color:#888">${usd(prices[prices.length-1])}</span></div>
+      </div>
+    </div>`;
+  });
+  if(!cardSections) cardSections=`<div style="text-align:center;color:#444;padding:20px;font-size:13px">各カードの「📊 履歴」から記録を追加してください</div>`;
+
+  document.getElementById('content').innerHTML=topSection+`<div class="section-label">カード別推移</div>`+cardSections;
+
+  if(ph.length>=2) {
+    _phData=ph;
+    setTimeout(()=>{ initPortfolioCanvas(ph); },60);
+  }
+}
+
+function initPortfolioCanvas(ph) {
+  const wrap=document.getElementById('phWrap'); if(!wrap) return;
+  const canvas=document.getElementById('phCanvas'); if(!canvas) return;
+  const W=wrap.clientWidth, H=110;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  _phCanvas=canvas; _phCtx=canvas.getContext('2d'); _phCtx.scale(dpr,dpr);
+  drawPhChart(ph, ph.length-1, W, H);
+}
+
+function drawPhChart(ph, activeIdx, W, H) {
+  const ctx=_phCtx; if(!ctx) return;
+  ctx.clearRect(0,0,W,H);
+  const prices=ph.map(p=>p.total);
+  const mn=Math.min(...prices), mx=Math.max(...prices), rng=mx-mn||1, pad=8;
+  const up=prices[prices.length-1]>=prices[0];
+  const col=up?'#4ade80':'#f87171';
+  const x=(i)=>pad+(i/(ph.length-1))*(W-pad*2);
+  const y=(v)=>H-pad-((v-mn)/rng)*(H-pad*2);
+
+  // gradient fill
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,up?'rgba(74,222,128,.2)':'rgba(248,113,113,.2)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ph.forEach((p,i)=>{ i===0?ctx.moveTo(x(i),y(p.total)):ctx.lineTo(x(i),y(p.total)); });
+  ctx.lineTo(x(ph.length-1),H-pad); ctx.lineTo(x(0),H-pad); ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
+
+  // line
+  ctx.beginPath();
+  ph.forEach((p,i)=>{ i===0?ctx.moveTo(x(i),y(p.total)):ctx.lineTo(x(i),y(p.total)); });
+  ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
+
+  // scrubber
+  const sx=x(activeIdx), sy=y(ph[activeIdx].total);
+  ctx.beginPath(); ctx.setLineDash([3,4]);
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=1;
+  ctx.moveTo(sx,pad); ctx.lineTo(sx,H-pad); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(sx,sy,6,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+  ctx.beginPath(); ctx.arc(sx,sy,3,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+}
+
+function onSlider(val) {
+  const idx=parseInt(val);
+  if(!_phData||!_phData.length) return;
+  const entry=_phData[idx], first=_phData[0];
+  document.getElementById('phBig').textContent=usd(entry.total);
+  document.getElementById('phDate').textContent=disp(entry.date);
+  const chgAmt=entry.total-first.total;
+  const chgP=first.total>0?(chgAmt/first.total*100).toFixed(1):0;
+  const el=document.getElementById('phChange');
+  if(idx===0){el.textContent=''; }
+  else {
+    el.textContent=(chgAmt>=0?'▲ ':'▼ ')+usd(Math.abs(chgAmt))+'（'+(chgAmt>=0?'+':'')+chgP+'%）';
+    el.className='ph-change '+(chgAmt>=0?'green':'red');
+  }
+  const W=_phCanvas?parseInt(_phCanvas.style.width):300;
+  drawPhChart(_phData, idx, W, 110);
+}
+
+/* ── CHART TAB ── */
+function renderChart() {
+  const tM=cards.reduce((s,c)=>s+(c.market||0)*(c.qty||1),0);
+  const sorted=[...cards].sort((a,b)=>(b.market*b.qty)-(a.market*a.qty));
+  const pnlS=[...cards].sort((a,b)=>((b.market-b.buy)*b.qty)-((a.market-a.buy)*a.qty));
+  const bars=sorted.map((c,i)=>{
+    const val=(c.market||0)*(c.qty||1), p=tM>0?(val/tM*100):0, col=COLORS[i%COLORS.length];
+    return `<div class="bar-row"><div class="bar-label-row"><div class="bar-name">${esc(c.name)}</div><div class="bar-pct" style="color:${col}">${p.toFixed(1)}%</div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${col}"></div></div>
+      <div class="bar-sub">${usd(val)}</div></div>`;
+  }).join('');
+  const ranks=pnlS.map(c=>{
+    const pnlA=((c.market||0)-(c.buy||0))*(c.qty||1), pnlP=c.buy>0?((c.market-c.buy)/c.buy*100).toFixed(1):null;
+    return `<div class="rank-row"><div class="rank-left"><div class="rank-name">${esc(c.name)}</div>${gradeBadge(c.grade)}</div>
+      <div class="rank-right"><div class="rank-pnl ${pnlA>=0?'green':'red'}">${pnlA>=0?'+':''}${usd(pnlA)}</div>
+      <div class="rank-pct">${pnlP!==null?(pnlA>=0?'+':'')+pnlP+'%':'—'}</div></div></div>`;
+  }).join('');
+  document.getElementById('content').innerHTML=`
+    <div class="analysis-card"><div class="analysis-title">時価構成比</div>${bars||'<div style="color:#444;font-size:13px">カードがありません</div>'}</div>
+    <div class="analysis-card"><div class="analysis-title">損益ランキング</div>${ranks||'<div style="color:#444;font-size:13px">カードがありません</div>'}</div>`;
+}
+
+/* ── TABS ── */
+function switchTab(t) {
+  currentTab=t;
+  ['list','history','chart'].forEach(id=>{
+    const el=document.getElementById('tab'+id.charAt(0).toUpperCase()+id.slice(1));
+    if(el) el.className='tab'+(t===id?' active':'');
+  });
+  render();
+}
+
+/* ── CARD MODAL ── */
+function openAdd() {
+  editId=null;
+  document.getElementById('modalTitle').textContent='カードを追加';
+  ['fName','fSet','fNumber','fBuy','fMarket','fNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fGrade').value='10'; document.getElementById('fQty').value='1';
+  document.getElementById('ebayHint').style.display='none';
+  document.getElementById('modalActions').innerHTML=`<button class="btn-primary" onclick="saveCard()">追加する</button>`;
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('fName').oninput=updateEbayHint;
+}
+function openEdit(id) {
+  const c=cards.find(x=>x.id===id); if(!c) return;
+  editId=id;
+  document.getElementById('modalTitle').textContent='カードを編集';
+  document.getElementById('fName').value=c.name; document.getElementById('fSet').value=c.set||'';
+  document.getElementById('fNumber').value=c.number||''; document.getElementById('fGrade').value=c.grade;
+  document.getElementById('fQty').value=c.qty||1; document.getElementById('fBuy').value=c.buy||'';
+  document.getElementById('fMarket').value=c.market||''; document.getElementById('fNotes').value=c.notes||'';
+  const h=document.getElementById('ebayHint');
+  h.style.display='block'; h.href=ebayUrl(c.name); h.textContent='🔍 eBayで「'+c.name+'」を確認 →';
+  document.getElementById('modalActions').innerHTML=`
+    <button class="btn-primary" onclick="saveCard()">更新する</button>
+    <button class="btn-secondary" onclick="closeModal();setTimeout(()=>openHistModal(${id}),200)">📊 価格履歴を記録する</button>
+    <button class="btn-danger" onclick="deleteCard()">削除する</button>`;
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('fName').oninput=updateEbayHint;
+}
+function updateEbayHint() {
+  const n=document.getElementById('fName').value.trim(), h=document.getElementById('ebayHint');
+  if(n){h.style.display='block';h.href=ebayUrl(n);h.textContent='🔍 eBayで「PSA 10 '+n+'」を確認 →';}
+  else h.style.display='none';
+}
+function closeModal() { document.getElementById('modal').style.display='none'; }
+function handleOverlay(e) { if(e.target===e.currentTarget) closeModal(); }
+function saveCard() {
+  const name=document.getElementById('fName').value.trim();
+  const market=parseFloat(document.getElementById('fMarket').value);
+  if(!name){alert('カード名を入力してください');return;}
+  if(isNaN(market)){alert('時価を入力してください');return;}
+  const existing=editId?cards.find(c=>c.id===editId):null;
+  const card={
+    id:editId||Date.now(), name, set:document.getElementById('fSet').value.trim(),
+    number:document.getElementById('fNumber').value.trim(), grade:parseInt(document.getElementById('fGrade').value),
+    qty:parseInt(document.getElementById('fQty').value)||1, buy:parseFloat(document.getElementById('fBuy').value)||0,
+    market, notes:document.getElementById('fNotes').value.trim(),
+    history:existing?[...(existing.history||[])]:[]
+  };
+  // Auto-record price if changed
+  if(!existing||existing.market!==market) {
+    const td=today(), already=card.history.find(h=>h.date===td);
+    if(already) already.price=market; else card.history.push({date:td,price:market});
+    card.history.sort((a,b)=>a.date.localeCompare(b.date));
+  }
+  cards=editId?cards.map(c=>c.id===editId?card:c):[...cards,card];
+  save(); closeModal(); render();
+}
+function deleteCard() {
+  if(!confirm('このカードを削除しますか？')) return;
+  cards=cards.filter(c=>c.id!==editId); save(); closeModal(); render();
+}
+
+/* ── HISTORY MODAL ── */
+function openHistModal(id) {
+  histCardId=id;
+  const c=cards.find(x=>x.id===id); if(!c) return;
+  document.getElementById('histModalTitle').textContent=c.name;
+  document.getElementById('hPrice').value=c.market||'';
+  document.getElementById('hDate').value=today();
+  renderHistList(c);
+  document.getElementById('histModal').style.display='flex';
+}
+function renderHistList(c) {
+  const hist=[...(c.history||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  let html='';
+  hist.forEach((h,i)=>{
+    const prev=hist[i+1], chg=prev?((h.price-prev.price)/prev.price*100).toFixed(1):null;
+    html+=`<div class="hm-row">
+      <div><div class="hm-date">${disp(h.date)}</div>${chg!==null?`<div class="hm-change ${parseFloat(chg)>=0?'green':'red'}">${parseFloat(chg)>=0?'▲':'▼'}${Math.abs(chg)}%</div>`:'<div class="hm-change" style="color:#444">初回記録</div>'}</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="hm-price">${usd(h.price)}</div><button class="hm-del" onclick="delHist('${h.date}')">🗑</button></div>
+    </div>`;
+  });
+  document.getElementById('histList').innerHTML=html||'<div style="color:#444;font-size:13px;padding:16px 0;text-align:center">記録がありません<br>上のフォームから追加できます</div>';
+}
+function addHistoryEntry() {
+  const price=parseFloat(document.getElementById('hPrice').value), date=document.getElementById('hDate').value;
+  if(isNaN(price)||!date){alert('価格と日付を入力してください');return;}
+  const c=cards.find(x=>x.id===histCardId); if(!c) return;
+  if(!c.history) c.history=[];
+  const ex=c.history.find(h=>h.date===date);
+  if(ex) ex.price=price; else c.history.push({date,price});
+  c.history.sort((a,b)=>a.date.localeCompare(b.date));
+  if(date===today()) c.market=price;
+  save(); renderHistList(c); render();
+}
+function delHist(date) {
+  if(!confirm('この記録を削除しますか？')) return;
+  const c=cards.find(x=>x.id===histCardId); if(!c) return;
+  c.history=(c.history||[]).filter(h=>h.date!==date);
+  save(); renderHistList(c); render();
+}
+function closeHistModal() { document.getElementById('histModal').style.display='none'; }
+function handleHistOverlay(e) { if(e.target===e.currentTarget) closeHistModal(); }
+
+/* ── INSTALL ── */
+function showInstallHint() {
+  if(!localStorage.getItem('install-hint-dismissed')&&!window.navigator.standalone)
+    document.getElementById('installBanner').style.display='flex';
+}
+function dismissInstall() { localStorage.setItem('install-hint-dismissed','1'); document.getElementById('installBanner').style.display='none'; }
+
+/* ── INIT ── */
+load(); render(); showInstallHint();
+</script>
+
+</body>
+</html>
